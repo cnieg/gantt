@@ -41,7 +41,7 @@ jobs:
         id: verify_version
         if: github.ref == 'refs/heads/master'
         run: |
-          if [[ $VERSION == *"-SNAPSHOT"* ]]; then
+          if [[ "${{ steps.get_version.outputs.VERSION }}" == *"-SNAPSHOT"* ]]; then
             echo "Snapshot version are forbidden on master branch"
             exit 1
           fi
