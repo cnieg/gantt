@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %n</Pattern>
-        </encoder>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>TRACE</level>
-        </filter>
-    </appender>
 
-    <appender name="dailyRollingFileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <File>logs/gantt.log</File>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- daily rollover -->
-            <FileNamePattern>logs/gantt.%d{yyyy-MM-dd}.log</FileNamePattern>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty name="application" source="spring.application.name"/>
+    <contextName>${application}</contextName>
 
-            <!-- keep 30 days' worth of history -->
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
+    <!-- Logger Runtime -->
+    <if condition='isDefined("KUBERNETES_PORT")'>
+        <then>
+            <property name="JSON_OUTPUT" value="${JSON_OUTPUT:-true}"/>
+        </then>
+        <else>
+            <property name="JSON_OUTPUT" value="${JSON_OUTPUT:-false}"/>
+        </else>
+    </if>
 
-        <encoder>
-            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg %n</Pattern>
-        </encoder>
-    </appender>
+    <if condition="${JSON_OUTPUT}">
+        <then>
+            <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"app":"${application:-default}","target_type":"logs","tag": [${LOG_TAG:-"gantt"}]}
+                    </customFields>
+                </encoder>
+            </appender>
+        </then>
+        <else>
+            <property name="CONSOLE_LOG_PATTERN"
+                      value="${CONSOLE_LOG_PATTERN:-%date{ISO8601} %-5level [%.20thread] %logger{35} %marker %mdc - %message%n}"/>
+            <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        </else>
+    </if>
 
-    <logger name="fr.cnieg.cexi" additivity="false">
-        <level value="${APP_LOGGING_LEVEL:-INFO}" />
-        <appender-ref ref="dailyRollingFileAppender"/>
-        <appender-ref ref="consoleAppender" />
-    </logger>
-
-    <root>
-        <level value="INFO" />
-        <appender-ref ref="consoleAppender" />
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
     </root>
+
 </configuration>
