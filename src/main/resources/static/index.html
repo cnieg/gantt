@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <title>MEP - 08/06/2020</title>
+    <link rel="stylesheet" href="lib/dhtmlxgantt.css?v=7.0.1" type="text/css">
+    <link rel="stylesheet" href="lib/controls_styles.css?v=7.0.1">
+    <style>
+        html,
+        body {
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="gantt_control">
+        <button onclick="save()">Sauvegarder</button>
+        <button onclick="exportJson()">Exporter en JSON</button>
+        <button onclick="toggleMode(this)">Zoom Auto</button>
+        <button onClick="unselectTasks()">Effacer sélection</button>
+        <a id="dl_hidden_link" style="display:none"></a>
+    </div>
+    <div id="gantt_here" style='width:100%; height: calc(100vh - 52px);'></div>
+
+    <script src="lib/dhtmlxgantt.js?v=7.0.1"></script>
+    <script src="https://export.dhtmlx.com/gantt/api.js?v=7.0.1"></script>
+    <script src="lib/gantt_cnieg.js"></script>
+</body>
