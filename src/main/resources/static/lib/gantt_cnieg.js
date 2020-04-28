@@ -1,10 +1,64 @@
 
+function getUrl() {
+    var url = window.location.protocol + "//" +
+        window.location.hostname;
+    if(window.location.port !== "") {
+        url+= ":" + window.location.port;
+    }
+    url+= window.location.pathname;
+    return url;
+}
+
 function getUrlVars() {
-    var vars = {};
-    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+    let vars = {};
+    window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
         vars[key] = value;
     });
     return vars;
+}
+
+function openCreateModal() {
+    document.getElementById("createModal").style.display = "block";
+}
+
+function onNewGanttIdChange() {
+    document.getElementById("newGanttUrl").innerText =
+        getUrl() + "?id=" +
+        document.getElementById("newGanttId").value;
+}
+
+function closeCreateModal() {
+    document.getElementById("createModal").style.display = "none";
+}
+
+function create() {
+    const id = document.getElementById("newGanttId").value;
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    if(id === "" || startDate === "" || endDate === "") {
+        gantt.message({type: "error", text: "Tous les champs sont obligatoires", expire: 5000});
+    } else {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/" + id, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        xhr.onreadystatechange = function() {
+            if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                gantt.message({type: "info", text: "Création réussie, redirection dans 5 sec", expire: 5000});
+                setTimeout(function() {
+                    window.location.href = getUrl() + "?id=" + id;
+                }, 5000);
+            }
+        }
+        xhr.send(JSON.stringify({
+            "startDate": startDate,
+            "endDate": endDate,
+            "gantt": {
+                data: [],
+                links: []
+            }
+        }));
+    }
 }
 
 function save() {
@@ -14,10 +68,14 @@ function save() {
 
     xhr.onreadystatechange = function() {
         if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
-
+            gantt.message({text: "Sauvegarde réussie", expire: 5});
         }
     }
-    xhr.send(JSON.stringify(gantt.serialize()));
+    xhr.send(JSON.stringify({
+        "startDate": document.getElementById("start-date").value,
+        "endDate": document.getElementById("end-date").value,
+        "gantt" : gantt.serialize()
+    }));
 }
 
 function exportJson() {
@@ -39,11 +97,53 @@ function getStaff() {
     xhr.open("GET", "/api/staff");
     xhr.onload = function() {
         if (xhr.status === 200) {
-            gantt.serverList("staff", JSON.parse(this.responseText));
+            var json = JSON.parse(this.responseText);
+            gantt.serverList("staff", json);
             configureGantt();
         }
     };
     xhr.send();
+}
+
+function getData() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/" + getUrlVars().id);
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var json = JSON.parse(this.responseText);
+            zoomConfig.startDate = new Date(json.startDate);
+            zoomConfig.endDate = new Date(json.endDate);
+            gantt.ext.zoom.init(zoomConfig);
+            gantt.init("gantt_here", new Date(json.startDate), new Date(json.endDate));
+            gantt.parse(json.gantt);
+            colorize();
+        }
+    };
+    xhr.send();
+}
+
+function colorize() {
+    var styleId = "dynamicGanttStyles";
+    var element = document.getElementById(styleId);
+    if (!element) {
+        element = document.createElement("style");
+        element.id = styleId;
+        document.querySelector("head").appendChild(element);
+    }
+    var html = [];
+    var resources = gantt.serverList("staff");
+
+    resources.forEach(function(r) {
+        html.push(".gantt_task_line.gantt_resource_" + r.key + "{" +
+            "background-color:" + r.backgroundColor + "; " +
+            "color:" + r.textColor + ";" +
+            "}");
+        html.push(".gantt_row.gantt_resource_" + r.key + " .gantt_cell:nth-child(1) .gantt_tree_content{" +
+            "background-color:" + r.backgroundColor + "; " +
+            "color:" + r.textColor + ";" +
+            "}");
+    });
+    element.innerHTML = html.join("");
 }
 
 function configureGantt() {
@@ -170,131 +270,7 @@ function configureGantt() {
                 return css.join(" ");
             };
 
-    gantt.attachEvent("onLoadEnd", function() {
-        var styleId = "dynamicGanttStyles";
-        var element = document.getElementById(styleId);
-        if (!element) {
-            element = document.createElement("style");
-            element.id = styleId;
-            document.querySelector("head").appendChild(element);
-        }
-        var html = [];
-        var resources = gantt.serverList("staff");
-
-        resources.forEach(function(r) {
-            html.push(".gantt_task_line.gantt_resource_" + r.key + "{" +
-                "background-color:" + r.backgroundColor + "; " +
-                "color:" + r.textColor + ";" +
-                "}");
-            html.push(".gantt_row.gantt_resource_" + r.key + " .gantt_cell:nth-child(1) .gantt_tree_content{" +
-                "background-color:" + r.backgroundColor + "; " +
-                "color:" + r.textColor + ";" +
-                "}");
-        });
-        element.innerHTML = html.join("");
-    });
-
-    var hourToStr = gantt.date.date_to_str("%H:%i");
-    var hourRangeFormat = function(step) {
-        return function(date) {
-            var intervalEnd = new Date(gantt.date.add(date, step, "hour") - 1)
-            return hourToStr(date) + " - " + hourToStr(intervalEnd);
-        };
-    };
-
-
     gantt.config.min_column_width = 80;
-    var zoomConfig = {
-        minColumnWidth: 80,
-        maxColumnWidth: 150,
-        levels: [
-            [{
-                unit: "month",
-                format: "%M %Y",
-                step: 1
-            }, {
-                unit: "week",
-                step: 1,
-                format: function(date) {
-                    var dateToStr = gantt.date.date_to_str("%d %M");
-                    var endDate = gantt.date.add(date, -6, "day");
-                    var weekNum = gantt.date.date_to_str("%W")(date);
-                    return "Week #" + weekNum + ", " + dateToStr(date) + " - " + dateToStr(endDate);
-                }
-            }],
-            [{
-                unit: "month",
-                format: "%M %Y",
-                step: 1
-            }, {
-                unit: "day",
-                format: "%d %M",
-                step: 1
-            }],
-            [{
-                unit: "day",
-                format: "%d %M",
-                step: 1
-            }, {
-                unit: "hour",
-                format: hourRangeFormat(12),
-                step: 12
-            }],
-            [{
-                unit: "day",
-                format: "%d %M",
-                step: 1
-            }, {
-                unit: "hour",
-                format: hourRangeFormat(6),
-                step: 6
-            }],
-            [{
-                unit: "day",
-                format: "%d %M",
-                step: 1
-            }, {
-                unit: "hour",
-                format: "%H:%i",
-                step: 1
-            }],
-            [{
-                unit: "hour",
-                step: 1,
-                format: "%g %a"
-            }, {
-                unit: "day",
-                step: 1,
-                format: "%j %F, %l"
-            }, {
-                unit: "minute",
-                step: 15,
-                format: "%i"
-            }],
-            [{
-                unit: "hour",
-                step: 1,
-                format: "%g %a"
-            }, {
-                unit: "day",
-                step: 1,
-                format: "%j %F, %l"
-            }, {
-                unit: "minute",
-                step: 5,
-                format: "%i"
-            }]
-        ],
-        startDate: new Date(2020, 05, 08),
-    endDate: new Date(2020, 05, 09),
-    useKey: "ctrlKey",
-        trigger: "wheel",
-        element: function() {
-        return gantt.$root.querySelector(".gantt_task");
-    }
-}
-
-    gantt.ext.zoom.init(zoomConfig);
 
     gantt.config.multiselect = true;
     gantt.config.click_drag = {
@@ -303,9 +279,105 @@ function configureGantt() {
     gantt.config.autoscroll = true;
     gantt.config.autoscroll_speed = 50;
 
-    gantt.init("gantt_here");
-    gantt.load("/api/" + getUrlVars().id);
+    getData();
+}
 
+let hourToStr = gantt.date.date_to_str("%H:%i");
+let hourRangeFormat = function (step) {
+    return function(date) {
+        var intervalEnd = new Date(gantt.date.add(date, step, "hour") - 1)
+        return hourToStr(date) + " - " + hourToStr(intervalEnd);
+    };
+}
+
+let zoomConfig = {
+    minColumnWidth: 80,
+    maxColumnWidth: 150,
+    levels: [
+        [{
+            unit: "month",
+            format: "%M %Y",
+            step: 1
+        }, {
+            unit: "week",
+            step: 1,
+            format: function(date) {
+                var dateToStr = gantt.date.date_to_str("%d %M");
+                var endDate = gantt.date.add(date, -6, "day");
+                var weekNum = gantt.date.date_to_str("%W")(date);
+                return "Week #" + weekNum + ", " + dateToStr(date) + " - " + dateToStr(endDate);
+            }
+        }],
+        [{
+            unit: "month",
+            format: "%M %Y",
+            step: 1
+        }, {
+            unit: "day",
+            format: "%d %M",
+            step: 1
+        }],
+        [{
+            unit: "day",
+            format: "%d %M",
+            step: 1
+        }, {
+            unit: "hour",
+            format: hourRangeFormat(12),
+            step: 12
+        }],
+        [{
+            unit: "day",
+            format: "%d %M",
+            step: 1
+        }, {
+            unit: "hour",
+            format: hourRangeFormat(6),
+            step: 6
+        }],
+        [{
+            unit: "day",
+            format: "%d %M",
+            step: 1
+        }, {
+            unit: "hour",
+            format: "%H:%i",
+            step: 1
+        }],
+        [{
+            unit: "hour",
+            step: 1,
+            format: "%g %a"
+        }, {
+            unit: "day",
+            step: 1,
+            format: "%j %F, %l"
+        }, {
+            unit: "minute",
+            step: 15,
+            format: "%i"
+        }],
+        [{
+            unit: "hour",
+            step: 1,
+            format: "%g %a"
+        }, {
+            unit: "day",
+            step: 1,
+            format: "%j %F, %l"
+        }, {
+            unit: "minute",
+            step: 5,
+            format: "%i"
+        }]
+    ],
+    startDate: new Date(2020, 1, 1),
+    endDate: new Date(2020, 1, 1),
+    useKey: "ctrlKey",
+    trigger: "wheel",
+    element: function() {
+        return gantt.$root.querySelector(".gantt_task");
+    }
 }
 
 function onDragEnd(startPoint, endPoint, startDate, endDate, tasksBetweenDates, tasksInRows) {
@@ -522,4 +594,11 @@ var scaleConfigs = [
     }
 ];
 
-getStaff();
+var id = getUrlVars().id;
+if(getUrlVars().id === undefined) {
+    openCreateModal();
+} else {
+    document.title = "Gantt : " + id;
+    getStaff();
+}
+

@@ -1,0 +1,73 @@
+html,
+body {
+    height: 100%;
+    padding: 0px;
+    margin: 0px;
+    overflow: hidden;
+}
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    max-height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 25px;
+    border: 1px solid #888;
+    width: 500px; /* Could be more or less, depending on screen size */
+}
+
+.modal-title > span {
+    color: rgba(0, 0, 0, 0.8);
+    cursor: pointer;
+    font-family: Roboto, arial, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.modal-form-label {
+    color: rgba(0, 0, 0, 0.8);
+    font-family: Roboto, arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 0px 5px 7px;
+}
+
+.modal-form-field {
+    padding: 2px 10px;
+    overflow: hidden;
+}
+
+.modal-form-field > textarea {
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-family: Roboto,arial,sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+    border: 1px solid #d7d7d7;
+    height: 100%;
+    width: 100%;
+    outline: none !important;
+    resize: none;
+}
+
+.modal-buttons {
+    height: 32px;
+    margin: 10px 0;
+}
+
+.modal-buttons > button {
+    margin: 0 7px;
+}
