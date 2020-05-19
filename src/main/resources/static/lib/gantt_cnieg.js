@@ -92,6 +92,19 @@ function unselectTasks() {
     });
 }
 
+function getTeams() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/team");
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var json = JSON.parse(this.responseText);
+            gantt.serverList("team", json);
+            getStaff();
+        }
+    };
+    xhr.send();
+}
+
 function getStaff() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "/api/staff");
@@ -133,7 +146,7 @@ function colorize() {
         document.querySelector("head").appendChild(element);
     }
     var html = [];
-    var resources = gantt.serverList("staff");
+    var resources = gantt.serverList("team");
 
     resources.forEach(function(r) {
         html.push(".gantt_task_line.gantt_resource_" + r.key + "{" +
@@ -162,7 +175,7 @@ function configureGantt() {
         tooltips.tooltip.setViewport(gantt.$task_data);
     });
 
-    gantt.config.grid_width = 420;
+    gantt.config.grid_width = 450;
     gantt.config.grid_resize = true;
     gantt.config.open_tree_initially = true;
 
@@ -188,7 +201,8 @@ function configureGantt() {
 
     gantt.locale.labels["section_parent"] = "Tâche parente";
     var labels = gantt.locale.labels;
-    gantt.locale.labels.column_owner = labels.section_owner = "Owner";
+    gantt.locale.labels.column_team = labels.section_team = "Equipe";
+    gantt.locale.labels.column_owner = labels.section_owner = "Responsable";
 
     function byId(list, id) {
         for (var i = 0; i < list.length; i++) {
@@ -199,26 +213,31 @@ function configureGantt() {
     }
 
     gantt.config.columns = [{
-        name: "owner",
+        name: "team",
         label: "Equipe",
-        width: 80,
+        width: 60,
         align: "center",
+        resize: true,
         template: function(item) {
-            return byId(gantt.serverList('staff'), item.owner_id)
+            return byId(gantt.serverList('team'), item.team_id)
         }
     }, {
         name: "text",
         label: "Tâche",
         tree: true,
-        width: 150
+        width: '*'
     }, {
         name: "duration",
         label: "Durée",
-        tree: true,
-        width: '*',
+        width: '50',
         template: function(item) {
-            return item.duration + " min"
+            return item.duration + "m"
         }
+    }, {
+        name: "owner",
+        align: "center",
+        width: 80,
+        label: "Responsable"
     }, {
         name: "add",
         width: 40
@@ -231,11 +250,17 @@ function configureGantt() {
         type: "textarea",
         focus: true
     }, {
+        name: "team",
+        height: 22,
+        map_to: "team_id",
+        type: "select",
+        options: gantt.serverList("team")
+    }, {
         name: "owner",
         height: 22,
-        map_to: "owner_id",
-        type: "select",
-        options: gantt.serverList("staff")
+        map_to: "owner",
+        type: "textarea",
+        unassigned_value:1
     }, {
         name: "parent",
         type: "parent",
@@ -256,7 +281,7 @@ function configureGantt() {
     }];
 
     gantt.templates.rightside_text = function(start, end, task) {
-        return byId(gantt.serverList('staff'), task.owner_id);
+        return byId(gantt.serverList('team'), task.team_id);
     };
 
     gantt.templates.grid_row_class =
@@ -266,8 +291,8 @@ function configureGantt() {
                 if (task.$virtual || task.type == gantt.config.types.project)
                     css.push("summary-bar");
 
-                if (task.owner_id) {
-                    css.push("gantt_resource_task gantt_resource_" + task.owner_id);
+                if (task.team_id) {
+                    css.push("gantt_resource_task gantt_resource_" + task.team_id);
                 }
 
                 return css.join(" ");
@@ -602,6 +627,6 @@ if(getUrlVars().id === undefined) {
     openCreateModal();
 } else {
     document.title = "Gantt : " + id;
-    getStaff();
+    getTeams();
 }
 
