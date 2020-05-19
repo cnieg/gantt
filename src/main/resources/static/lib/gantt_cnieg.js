@@ -111,6 +111,8 @@ function getData() {
     xhr.onload = function() {
         if (xhr.status === 200) {
             var json = JSON.parse(this.responseText);
+            document.getElementById("start-date").value = json.startDate;
+            document.getElementById("end-date").value = json.endDate;
             zoomConfig.startDate = new Date(json.startDate);
             zoomConfig.endDate = new Date(json.endDate);
             gantt.ext.zoom.init(zoomConfig);
@@ -144,6 +146,7 @@ function colorize() {
             "}");
     });
     element.innerHTML = html.join("");
+    document.getElementById("zoomAutoButton").click();
 }
 
 function configureGantt() {
@@ -271,7 +274,7 @@ function configureGantt() {
             };
 
     gantt.config.min_column_width = 80;
-
+    gantt.config.order_branch = true;
     gantt.config.multiselect = true;
     gantt.config.click_drag = {
         callback: onDragEnd
