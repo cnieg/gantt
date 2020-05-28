@@ -112,19 +112,6 @@ function getTeams() {
         if (xhr.status === 200) {
             var json = JSON.parse(this.responseText);
             gantt.serverList("team", json);
-            getStaff();
-        }
-    };
-    xhr.send();
-}
-
-function getStaff() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/api/staff");
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            var json = JSON.parse(this.responseText);
-            gantt.serverList("staff", json);
             configureGantt();
         }
     };
