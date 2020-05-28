@@ -258,11 +258,6 @@ function configureGantt() {
             return '<span class="gantt_status_' + item.status_id + '">' + getLabelById(gantt.serverList('status'), item.status_id) + '</span>';
         }
     }, {
-        name: "owner",
-        align: "center",
-        width: 80,
-        label: "Responsable"
-    }, {
         name: "add",
         width: 40
     }];
