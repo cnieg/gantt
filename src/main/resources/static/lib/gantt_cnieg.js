@@ -92,6 +92,19 @@ function unselectTasks() {
     });
 }
 
+function getStatus() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/status");
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var json = JSON.parse(this.responseText);
+            gantt.serverList("status", json);
+            getTeams();
+        }
+    };
+    xhr.send();
+}
+
 function getTeams() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "/api/team");
@@ -147,6 +160,7 @@ function colorize() {
     }
     var html = [];
     var resources = gantt.serverList("team");
+    var status = gantt.serverList("status");
 
     resources.forEach(function(r) {
         html.push(".gantt_task_line.gantt_resource_" + r.key + "{" +
@@ -158,6 +172,14 @@ function colorize() {
             "color:" + r.textColor + ";" +
             "}");
     });
+    status.forEach(function(r) {
+        html.push(".gantt_row .gantt_status_" + r.key + "{" +
+            "border-radius: 5px;" +
+            "padding: 5px;" +
+            "background-color:" + r.backgroundColor + "; " +
+            "color:" + r.textColor + ";" +
+            "}");
+    })
     element.innerHTML = html.join("");
     document.getElementById("zoomAutoButton").click();
 }
@@ -175,7 +197,7 @@ function configureGantt() {
         tooltips.tooltip.setViewport(gantt.$task_data);
     });
 
-    gantt.config.grid_width = 450;
+    gantt.config.grid_width = 512;
     gantt.config.grid_resize = true;
     gantt.config.open_tree_initially = true;
 
@@ -203,8 +225,9 @@ function configureGantt() {
     var labels = gantt.locale.labels;
     gantt.locale.labels.column_team = labels.section_team = "Equipe";
     gantt.locale.labels.column_owner = labels.section_owner = "Responsable";
+    gantt.locale.labels.column_status = labels.section_status = "Statut";
 
-    function byId(list, id) {
+    function getLabelById(list, id) {
         for (var i = 0; i < list.length; i++) {
             if (list[i].key == id)
                 return list[i].label || "";
@@ -219,7 +242,7 @@ function configureGantt() {
         align: "center",
         resize: true,
         template: function(item) {
-            return byId(gantt.serverList('team'), item.team_id)
+            return getLabelById(gantt.serverList('team'), item.team_id)
         }
     }, {
         name: "text",
@@ -238,6 +261,15 @@ function configureGantt() {
         align: "center",
         width: 80,
         label: "Responsable"
+    }, {
+        name: "status",
+        label: "Statut",
+        width: 70,
+        align: "center",
+        resize: true,
+        template: function(item) {
+            return '<span class="gantt_status_' + item.status_id + '">' + getLabelById(gantt.serverList('status'), item.status_id) + '</span>';
+        }
     }, {
         name: "add",
         width: 40
@@ -262,6 +294,12 @@ function configureGantt() {
         type: "textarea",
         unassigned_value:1
     }, {
+        name: "status",
+        height: 22,
+        map_to: "status_id",
+        type: "select",
+        options: gantt.serverList("status")
+    }, {
         name: "parent",
         type: "parent",
         allow_root: "true",
@@ -279,10 +317,6 @@ function configureGantt() {
         type: "duration",
         map_to: "auto"
     }];
-
-    gantt.templates.rightside_text = function(start, end, task) {
-        return byId(gantt.serverList('team'), task.team_id);
-    };
 
     gantt.templates.grid_row_class =
         gantt.templates.task_row_class =
@@ -627,6 +661,6 @@ if(getUrlVars().id === undefined) {
     openCreateModal();
 } else {
     document.title = "Gantt : " + id;
-    getTeams();
+    getStatus();
 }
 
