@@ -71,3 +71,21 @@ body {
 .modal-buttons > button {
     margin: 0 7px;
 }
+
+.weekend {
+    background: #f4f7f4;
+}
+
+.now {
+    background-color: #0747a6;
+    color: #deebff;
+}
+
+.gantt_bar_project {
+    background-color: #1de9b6;
+    border-color: #16e1ae;
+}
+
+.gantt_selected .weekend {
+    background: #f7eb91;
+}

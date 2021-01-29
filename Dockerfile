@@ -1,4 +1,4 @@
-FROM openjdk:14-jdk-alpine
+FROM openjdk:15-jdk-alpine
 
 RUN addgroup -S gantt && \
     adduser -S gantt -G gantt && \

@@ -1,20 +1,10 @@
-
 function getUrl() {
-    var url = window.location.protocol + "//" +
-        window.location.hostname;
-    if(window.location.port !== "") {
-        url+= ":" + window.location.port;
+    let url = window.location.protocol + "//" + window.location.hostname;
+    if (window.location.port !== "") {
+        url += ":" + window.location.port;
     }
-    url+= window.location.pathname;
+    url += window.location.pathname;
     return url;
-}
-
-function getUrlVars() {
-    let vars = {};
-    window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-        vars[key] = value;
-    });
-    return vars;
 }
 
 function openCreateModal() {
@@ -22,9 +12,7 @@ function openCreateModal() {
 }
 
 function onNewGanttIdChange() {
-    document.getElementById("newGanttUrl").innerText =
-        getUrl() + "?id=" +
-        document.getElementById("newGanttId").value;
+    document.getElementById("newGanttUrl").innerText = getUrl() + "?id=" + document.getElementById("newGanttId").value;
 }
 
 function closeCreateModal() {
@@ -35,17 +23,17 @@ function create() {
     const id = document.getElementById("newGanttId").value;
     const startDate = document.getElementById("start-date").value;
     const endDate = document.getElementById("end-date").value;
-    if(id === "" || startDate === "" || endDate === "") {
+    if (id === "" || startDate === "" || endDate === "") {
         gantt.message({type: "error", text: "Tous les champs sont obligatoires", expire: 5000});
     } else {
-        var xhr = new XMLHttpRequest();
+        let xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/" + id, true);
         xhr.setRequestHeader("Content-Type", "application/json");
 
-        xhr.onreadystatechange = function() {
+        xhr.onreadystatechange = function () {
             if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
                 gantt.message({type: "info", text: "Création réussie, redirection dans 5 sec", expire: 5000});
-                setTimeout(function() {
+                setTimeout(function () {
                     window.location.href = getUrl() + "?id=" + id;
                 }, 5000);
             }
@@ -53,6 +41,7 @@ function create() {
         xhr.send(JSON.stringify({
             "startDate": startDate,
             "endDate": endDate,
+            "scale": "hour",
             "gantt": {
                 data: [],
                 links: []
@@ -62,11 +51,11 @@ function create() {
 }
 
 function save() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/" + getUrlVars().id, true);
+    let xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/" + id, true);
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
         if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
             gantt.message({text: "Sauvegarde réussie", expire: 5});
         }
@@ -74,30 +63,31 @@ function save() {
     xhr.send(JSON.stringify({
         "startDate": document.getElementById("start-date").value,
         "endDate": document.getElementById("end-date").value,
-        "gantt" : gantt.serialize()
+        "scale": document.getElementById("scale").value,
+        "gantt": gantt.serialize()
     }));
 }
 
 function exportJson() {
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gantt.serialize()));
-    var dlAnchorElem = document.getElementById('dl_hidden_link');
+    let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gantt.serialize()));
+    let dlAnchorElem = document.getElementById('dl_hidden_link');
     dlAnchorElem.setAttribute("href", dataStr);
     dlAnchorElem.setAttribute("download", "data.json");
     dlAnchorElem.click();
 }
 
 function unselectTasks() {
-    gantt.eachSelectedTask(function(item) {
+    gantt.eachSelectedTask(function (item) {
         gantt.unselectTask(item.id);
     });
 }
 
 function getStatus() {
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open("GET", "/api/status");
-    xhr.onload = function() {
+    xhr.onload = function () {
         if (xhr.status === 200) {
-            var json = JSON.parse(this.responseText);
+            let json = JSON.parse(this.responseText);
             gantt.serverList("status", json);
             getTeams();
         }
@@ -106,11 +96,11 @@ function getStatus() {
 }
 
 function getTeams() {
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open("GET", "/api/team");
-    xhr.onload = function() {
+    xhr.onload = function () {
         if (xhr.status === 200) {
-            var json = JSON.parse(this.responseText);
+            let json = JSON.parse(this.responseText);
             gantt.serverList("team", json);
             configureGantt();
         }
@@ -119,16 +109,21 @@ function getTeams() {
 }
 
 function getData() {
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/api/" + getUrlVars().id);
-    xhr.onload = function() {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/" + id);
+    xhr.onload = function () {
         if (xhr.status === 200) {
-            var json = JSON.parse(this.responseText);
+            let json = JSON.parse(this.responseText);
             document.getElementById("start-date").value = json.startDate;
             document.getElementById("end-date").value = json.endDate;
-            zoomConfig.startDate = new Date(json.startDate);
-            zoomConfig.endDate = new Date(json.endDate);
-            gantt.ext.zoom.init(zoomConfig);
+            document.getElementById('scale').value = json.scale;
+
+            for(let i = 0 ; i < zoomConfig['levels'].length ; i++) {
+                if(zoomConfig['levels'][i].name === json.scale) {
+                    gantt.config.scales = zoomConfig['levels'][i].scales;
+                }
+            }
+
             gantt.init("gantt_here", new Date(json.startDate), new Date(json.endDate));
             gantt.parse(json.gantt);
             colorize();
@@ -138,37 +133,36 @@ function getData() {
 }
 
 function colorize() {
-    var styleId = "dynamicGanttStyles";
-    var element = document.getElementById(styleId);
+    let styleId = "dynamicGanttStyles";
+    let element = document.getElementById(styleId);
     if (!element) {
         element = document.createElement("style");
         element.id = styleId;
         document.querySelector("head").appendChild(element);
     }
-    var html = [];
-    var resources = gantt.serverList("team");
-    var status = gantt.serverList("status");
+    let html = [];
+    let resources = gantt.serverList("team");
+    let status = gantt.serverList("status");
 
-    resources.forEach(function(r) {
+    resources.forEach(function (r) {
         html.push(".gantt_task_line.gantt_resource_" + r.key + "{" +
             "background-color:" + r.backgroundColor + "; " +
-            "color:" + r.textColor + ";" +
+            "color:" + r['textColor'] + ";" +
             "}");
-        html.push(".gantt_row.gantt_resource_" + r.key + " .gantt_cell:nth-child(1) .gantt_tree_content{" +
+        html.push(".gantt_row.gantt_resource_" + r.key + " .gantt_cell:nth-child(3) .gantt_tree_content{" +
             "background-color:" + r.backgroundColor + "; " +
-            "color:" + r.textColor + ";" +
+            "color:" + r['textColor'] + ";" +
             "}");
     });
-    status.forEach(function(r) {
+    status.forEach(function (r) {
         html.push(".gantt_row .gantt_status_" + r.key + "{" +
             "border-radius: 5px;" +
             "padding: 5px;" +
             "background-color:" + r.backgroundColor + "; " +
-            "color:" + r.textColor + ";" +
+            "color:" + r['textColor'] + ";" +
             "}");
     })
     element.innerHTML = html.join("");
-    document.getElementById("zoomAutoButton").click();
 }
 
 function configureGantt() {
@@ -176,62 +170,19 @@ function configureGantt() {
     gantt.plugins({
         tooltip: true,
         multiselect: true,
-        click_drag: true
+        click_drag: true,
+        marker: true
     });
-
-    gantt.attachEvent("onGanttReady", function() {
-        var tooltips = gantt.ext.tooltips;
-        tooltips.tooltip.setViewport(gantt.$task_data);
-    });
-
-    gantt.config.grid_width = 512;
-    gantt.config.grid_resize = true;
-    gantt.config.open_tree_initially = true;
-
-    gantt.config.date_format = "%d-%m-%Y %H:%i";
-    gantt.config.min_column_width = 20;
-    gantt.config.duration_unit = "minute";
-    gantt.config.duration_step = 1;
-    gantt.config.scale_height = 75;
-
-    gantt.config.scales = [{
-        unit: "hour",
-        step: 1,
-        format: "%g %a"
-    }, {
-        unit: "day",
-        step: 1,
-        format: "%j %F, %l"
-    }, {
-        unit: "minute",
-        step: 5,
-        format: "%i"
-    }];
 
     gantt.locale.labels["section_parent"] = "Tâche parente";
-    var labels = gantt.locale.labels;
-    gantt.locale.labels.column_team = labels.section_team = "Equipe";
-    gantt.locale.labels.column_owner = labels.section_owner = "Responsable";
+    let labels = gantt.locale.labels;
+    gantt.locale.labels.column_team = labels.section_team = "Équipe";
+    gantt.locale.labels.column_owner = labels.section_owner = "Acteur";
     gantt.locale.labels.column_status = labels.section_status = "Statut";
 
-    function getLabelById(list, id) {
-        for (var i = 0; i < list.length; i++) {
-            if (list[i].key == id)
-                return list[i].label || "";
-        }
-        return "";
-    }
+    /* LEFT COLUMN CONFIG */
 
     gantt.config.columns = [{
-        name: "team",
-        label: "Equipe",
-        width: 60,
-        align: "center",
-        resize: true,
-        template: function(item) {
-            return getLabelById(gantt.serverList('team'), item.team_id)
-        }
-    }, {
         name: "text",
         label: "Tâche",
         tree: true,
@@ -240,49 +191,66 @@ function configureGantt() {
         name: "duration",
         label: "Durée",
         width: '50',
-        template: function(item) {
-            return item.duration + "m"
+        template: function (item) {
+            if (item.duration < 60) {
+                return item.duration + "m";
+            } else if (item.duration < 60 * 24) {
+                return (item.duration / 60).toFixed(1) + "h";
+            } else {
+                return (item.duration / (60 * 24)).toFixed(1) + "j";
+            }
+        }
+    }, {
+        name: "team",
+        label: "Équipe",
+        width: 60,
+        align: "center",
+        resize: true,
+        template: function (item) {
+            return getLabelById(gantt.serverList('team'), item['team_id'])
         }
     }, {
         name: "owner",
         align: "center",
         width: 80,
-        label: "Responsable"
+        label: "Acteur"
     }, {
         name: "status",
         label: "Statut",
         width: 70,
         align: "center",
         resize: true,
-        template: function(item) {
-            return '<span class="gantt_status_' + item.status_id + '">' + getLabelById(gantt.serverList('status'), item.status_id) + '</span>';
+        template: function (item) {
+            return '<span class="gantt_status_' + item['status_id'] + '">' + getLabelById(gantt.serverList('status'), item['status_id']) + '</span>';
         }
     }, {
         name: "add",
         width: 40
     }];
 
+    /* LIGHTBOX MODAL */
+
     gantt.config.lightbox.sections = [{
         name: "description",
-        height: 38,
+        height: 30,
         map_to: "text",
         type: "textarea",
         focus: true
     }, {
         name: "team",
-        height: 22,
+        height: 30,
         map_to: "team_id",
         type: "select",
         options: gantt.serverList("team")
     }, {
         name: "owner",
-        height: 22,
+        height: 30,
         map_to: "owner",
         type: "textarea",
-        unassigned_value:1
+        unassigned_value: 1
     }, {
         name: "status",
-        height: 22,
+        height: 30,
         map_to: "status_id",
         type: "select",
         options: gantt.serverList("status")
@@ -290,36 +258,108 @@ function configureGantt() {
         name: "parent",
         type: "parent",
         allow_root: "true",
-        root_label: "No parent",
-        filter: function(id, task) {
-            /*	if(task.$level > 1){
-                    return false;
-                }else{
-                    return true;
-                }*/
-            return true;
-        }
+        root_label: "No parent"
     }, {
         name: "time",
         type: "duration",
         map_to: "auto"
     }];
 
+    /* CSS ADAPTATION */
+
     gantt.templates.grid_row_class =
         gantt.templates.task_row_class =
-            gantt.templates.task_class = function(start, end, task) {
-                var css = [];
-                if (task.$virtual || task.type == gantt.config.types.project)
-                    css.push("summary-bar");
-
-                if (task.team_id) {
-                    css.push("gantt_resource_task gantt_resource_" + task.team_id);
+            gantt.templates.task_class = function (start, end, task) {
+                let css = [];
+                if (task['team_id']) {
+                    css.push("gantt_resource_task gantt_resource_" + task['team_id']);
                 }
-
                 return css.join(" ");
             };
 
-    gantt.config.min_column_width = 80;
+    gantt.templates.scale_cell_class = function (date) {
+        if (date.getDay() === 0 || date.getDay() === 6) {
+            return "weekend";
+        }
+    };
+    gantt.templates.timeline_cell_class = function (item, date) {
+        if (date.getDay() === 0 || date.getDay() === 6) {
+            return "weekend"
+        }
+    };
+
+    /* NOW MARKER */
+
+    let dateToStr = gantt.date.date_to_str(gantt.config.task_date);
+    let today = new Date();
+    gantt.addMarker({
+        start_date: today,
+        css: "now",
+        text: "Maintenant",
+        title: "Maintenant: " + dateToStr(today)
+    });
+
+    /* CUSTOM UNITS */
+
+    gantt.date.half_day_start = function(date) {
+        let next = new Date(date);
+        if(next.getHours() >= 0 && next.getHours() < 12) {
+            next.setHours(0);
+        } else {
+            next.setHours(12);
+        }
+        return next;
+    };
+
+    gantt.date.add_half_day = function(date, inc){
+        return gantt.date.add(date, inc * 12, "hour");
+    };
+
+    /* EVENTS */
+
+    gantt.attachEvent("onGanttReady", function () {
+        let tooltips = gantt.ext.tooltips;
+        tooltips.tooltip.setViewport(gantt.$task_data);
+    });
+
+    gantt.attachEvent("onTaskCreated", function (task) {
+        switch(document.getElementById("scale").value) {
+            case "hour":
+                task.duration = 20;
+                break;
+            case "day":
+                task.duration = 120;
+                break;
+            case "week":
+                task.duration = 1440;
+                break;
+            case "month":
+                task.duration = 7200;
+                break;
+        }
+        if(task.parent > 0) {
+            parent.type = gantt.config.types.project;
+        }
+        return true;
+    });
+
+    gantt.attachEvent("onAfterTaskUpdate", function (taskId) {
+        setProjectRecursive(taskId, 0);
+        return true;
+    });
+
+    /* MAIN CONFIG */
+
+    gantt.config.grid_width = 512;
+    gantt.config.grid_resize = true;
+    gantt.config.open_tree_initially = false;
+
+    gantt.config.date_format = "%d-%m-%Y %H:%i";
+    gantt.config.duration_unit = "minute";
+    gantt.config.min_duration = 5*60*1000;
+    gantt.config.scale_height = 75;
+
+    gantt.config.show_tasks_outside_timescale = true;
     gantt.config.order_branch = true;
     gantt.config.multiselect = true;
     gantt.config.click_drag = {
@@ -328,323 +368,118 @@ function configureGantt() {
     gantt.config.autoscroll = true;
     gantt.config.autoscroll_speed = 50;
 
+    gantt.ext.zoom.init(zoomConfig);
+    gantt.ext.zoom.setLevel("hour");
+
     getData();
 }
 
-let hourToStr = gantt.date.date_to_str("%H:%i");
-let hourRangeFormat = function (step) {
-    return function(date) {
-        var intervalEnd = new Date(gantt.date.add(date, step, "hour") - 1)
-        return hourToStr(date) + " - " + hourToStr(intervalEnd);
-    };
-}
-
-let zoomConfig = {
-    minColumnWidth: 80,
-    maxColumnWidth: 150,
-    levels: [
-        [{
-            unit: "month",
-            format: "%M %Y",
-            step: 1
-        }, {
-            unit: "week",
-            step: 1,
-            format: function(date) {
-                var dateToStr = gantt.date.date_to_str("%d %M");
-                var endDate = gantt.date.add(date, -6, "day");
-                var weekNum = gantt.date.date_to_str("%W")(date);
-                return "Week #" + weekNum + ", " + dateToStr(date) + " - " + dateToStr(endDate);
-            }
-        }],
-        [{
-            unit: "month",
-            format: "%M %Y",
-            step: 1
-        }, {
-            unit: "day",
-            format: "%d %M",
-            step: 1
-        }],
-        [{
-            unit: "day",
-            format: "%d %M",
-            step: 1
-        }, {
-            unit: "hour",
-            format: hourRangeFormat(12),
-            step: 12
-        }],
-        [{
-            unit: "day",
-            format: "%d %M",
-            step: 1
-        }, {
-            unit: "hour",
-            format: hourRangeFormat(6),
-            step: 6
-        }],
-        [{
-            unit: "day",
-            format: "%d %M",
-            step: 1
-        }, {
-            unit: "hour",
-            format: "%H:%i",
-            step: 1
-        }],
-        [{
-            unit: "hour",
-            step: 1,
-            format: "%g %a"
-        }, {
-            unit: "day",
-            step: 1,
-            format: "%j %F, %l"
-        }, {
-            unit: "minute",
-            step: 15,
-            format: "%i"
-        }],
-        [{
-            unit: "hour",
-            step: 1,
-            format: "%g %a"
-        }, {
-            unit: "day",
-            step: 1,
-            format: "%j %F, %l"
-        }, {
-            unit: "minute",
-            step: 5,
-            format: "%i"
-        }]
-    ],
-    startDate: new Date(2020, 1, 1),
-    endDate: new Date(2020, 1, 1),
-    useKey: "ctrlKey",
-    trigger: "wheel",
-    element: function() {
-        return gantt.$root.querySelector(".gantt_task");
+function getLabelById(list, id) {
+    for (let i = 0; i < list.length; i++) {
+        if (list[i].key.toString() === id)
+            return list[i].label || "";
     }
+    return "";
 }
 
-function onDragEnd(startPoint, endPoint, startDate, endDate, tasksBetweenDates, tasksInRows) {
+function onDragEnd(startPoint, endPoint, startDate, endDate, tasksBetweenDates) {
     unselectTasks();
-    tasksBetweenDates.forEach(function(item) {
+    tasksBetweenDates.forEach(function (item) {
         gantt.selectTask(item.id);
     });
 }
 
-function toggleMode(toggle) {
-    toggle.enabled = !toggle.enabled;
-    if (toggle.enabled) {
-        toggle.innerHTML = "Zoom précédent";
-        //Saving previous scale state for future restore
-        saveConfig();
-        zoomToFit();
-    } else {
+function updateScale() {
+    gantt.ext.zoom.setLevel(document.getElementById("scale").value);
+}
 
-        toggle.innerHTML = "Zoom Auto";
-        //Restore previous scale state
-        restoreConfig();
-        gantt.render();
+function setProjectRecursive(taskId, level) {
+    let task = gantt.getTask(taskId);
+    if((!task.parent || task.parent.toString() === '0') && level > 0) {
+        task.type = gantt.config.types.project;
+        delete task['status_id'];
+        delete task['team_id'];
+    } else if(task.parent > 0 && level > 0) {
+        task.type = gantt.config.types.project;
+        delete task['status_id'];
+        delete task['team_id'];
+        setProjectRecursive(task.parent, level + 1);
+    } else if(task.parent > 0) {
+        setProjectRecursive(task.parent, level + 1);
     }
 }
 
-var cachedSettings = {};
-
-function saveConfig() {
-    var config = gantt.config;
-    cachedSettings = {};
-    cachedSettings.scales = config.scales;
-    cachedSettings.start_date = config.start_date;
-    cachedSettings.end_date = config.end_date;
-}
-
-function restoreConfig() {
-    applyConfig(cachedSettings);
-}
-
-function applyConfig(config, dates) {
-
-    gantt.config.scales = config.scales;
-
-    if (dates && dates.start_date && dates.end_date) {
-        gantt.config.start_date = gantt.date.add(dates.start_date, -1, config.scales[0].subscale_unit);
-        gantt.config.end_date = gantt.date.add(gantt.date[config.scales[0].subscale_unit + "_start"](dates.end_date), 2, config.scales[0].subscale_unit);
-    } else {
-        gantt.config.start_date = gantt.config.end_date = null;
+function halfDayFormat(date) {
+    let hour = date.getHours();
+    if (hour >= 0 && hour < 12) {
+        return "AM";
+    }
+    else {
+        return "PM";
     }
 }
 
+function toggleFullScreen() {
+    if (!isFullScreen) {
+        document.getElementsByTagName('body')[0].requestFullscreen().then(r => {
+            document.getElementById('toggleFullScreenBtn').innerText = 'Sortir du plein écran';
+            isFullScreen = true;
+        });
+    }
+    if (isFullScreen) {
+        document.exitFullscreen().then(r => {
+            document.getElementById('toggleFullScreenBtn').innerText = 'Plein écran';
+            isFullScreen = false;
+        });
+    }
+}
 
-function zoomToFit() {
-    var project = gantt.getSubtaskDates(),
-        areaWidth = gantt.$task.offsetWidth;
+let isFullScreen = false;
 
-    for (var i = 0; i < scaleConfigs.length; i++) {
-        var columnCount = getUnitsBetween(project.start_date, project.end_date, scaleConfigs[i].scales[0].subscale_unit, scaleConfigs[i].scales[0].step);
-        if ((columnCount + 2) * gantt.config.min_column_width >= areaWidth) {
-            --i;
-            break;
+let zoomConfig = {
+    levels: [
+        {
+            name: "hour",
+            min_column_width: 30,
+            scales: [
+                {unit: "day", step: 1, format: "%j %F, %l"},
+                {unit: "hour", step: 1, format: "%G"},
+                {unit: "minute", step: 5, format: "%i"}
+            ]
+        },
+        {
+            name: "day",
+            min_column_width: 30,
+            scales: [
+                {unit: "day", step: 1, format: "%j %F, %l"},
+                {unit: "hour", step: 1, format: "%G"}
+            ]
+        },
+        {
+            name: "week",
+            min_column_width: 30,
+            scales: [
+                {unit: "week", format: "S%W"},
+                {unit: "day", format: "%j"},
+                {unit: "half_day", format: halfDayFormat}
+            ]
+        },
+        {
+            name: "month",
+            min_column_width: 30,
+            scales: [
+                {unit: "month", step: 1, format: "%M"},
+                {unit: "week", step: 1, format: "S%W"},
+                {unit: "day", step: 1, format: "%j"}
+            ]
         }
-    }
+    ]
+};
 
+const urlParams = new URLSearchParams(window.location.search);
+let id = urlParams.get('id');
 
-    if (i == scaleConfigs.length) {
-        i--;
-    }
-
-    applyConfig(scaleConfigs[i], project);
-    gantt.render();
-}
-
-// get number of columns in timeline
-function getUnitsBetween(from, to, unit, step) {
-    var start = new Date(from),
-        end = new Date(to);
-    var units = 0;
-    while (start.valueOf() < end.valueOf()) {
-        units++;
-        start = gantt.date.add(start, step, unit);
-    }
-    return units;
-}
-
-//Setting available scales
-var scaleConfigs = [
-    // decades
-    {
-        scales: [{
-            subscale_unit: "year",
-            unit: "year",
-            step: 10,
-            template: function(date) {
-                var dateToStr = gantt.date.date_to_str("%Y");
-                var endDate = gantt.date.add(gantt.date.add(date, 10, "year"), -1, "day");
-                return dateToStr(date) + " - " + dateToStr(endDate);
-            }
-        }, {
-            unit: "year",
-            step: 100,
-            template: function(date) {
-                var dateToStr = gantt.date.date_to_str("%Y");
-                var endDate = gantt.date.add(gantt.date.add(date, 100, "year"), -1, "day");
-                return dateToStr(date) + " - " + dateToStr(endDate);
-            }
-        }]
-    },
-    // years
-    {
-        scales: [{
-            subscale_unit: "year",
-            unit: "year",
-            step: 1,
-            date: "%Y"
-        }, {
-            unit: "year",
-            step: 5,
-            template: function(date) {
-                var dateToStr = gantt.date.date_to_str("%Y");
-                var endDate = gantt.date.add(gantt.date.add(date, 5, "year"), -1, "day");
-                return dateToStr(date) + " - " + dateToStr(endDate);
-            }
-        }]
-    },
-    // quarters
-    {
-        scales: [{
-            subscale_unit: "month",
-            unit: "year",
-            step: 3,
-            format: "%Y"
-        }, {
-            unit: "month",
-            step: 3,
-            template: function(date) {
-                var dateToStr = gantt.date.date_to_str("%M");
-                var endDate = gantt.date.add(gantt.date.add(date, 3, "month"), -1, "day");
-                return dateToStr(date) + " - " + dateToStr(endDate);
-            }
-        }]
-    },
-    // months
-    {
-        scales: [{
-            subscale_unit: "month",
-            unit: "year",
-            step: 1,
-            format: "%Y"
-        }, {
-            unit: "month",
-            step: 1,
-            format: "%M"
-        }]
-    },
-    // weeks
-    {
-        scales: [{
-            subscale_unit: "week",
-            unit: "month",
-            step: 1,
-            date: "%F"
-        }, {
-            unit: "week",
-            step: 1,
-            template: function(date) {
-                var dateToStr = gantt.date.date_to_str("%d %M");
-                var endDate = gantt.date.add(gantt.date.add(date, 1, "week"), -1, "day");
-                return dateToStr(date) + " - " + dateToStr(endDate);
-            }
-        }]
-    },
-    // days
-    {
-        scales: [{
-            subscale_unit: "day",
-            unit: "month",
-            step: 1,
-            format: "%F"
-        }, {
-            unit: "day",
-            step: 1,
-            format: "%j"
-        }]
-    },
-    // hours
-    {
-        scales: [{
-            subscale_unit: "hour",
-            unit: "day",
-            step: 1,
-            format: "%j %M"
-        }, {
-            unit: "hour",
-            step: 1,
-            format: "%H:%i"
-        }
-
-        ]
-    },
-    // minutes
-    {
-        scales: [{
-            subscale_unit: "minute",
-            unit: "hour",
-            step: 1,
-            format: "%H"
-        }, {
-            unit: "minute",
-            step: 1,
-            format: "%H:%i"
-        }]
-
-    }
-];
-
-var id = getUrlVars().id;
-if(getUrlVars().id === undefined) {
+if (id === undefined) {
     openCreateModal();
 } else {
     document.title = "Gantt : " + id;

@@ -1,22 +1,33 @@
 <!DOCTYPE html>
 
-<head>
-    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
-    <title>Gantt</title>
-    <link rel="stylesheet" type="text/css" href="lib/dhtmlxgantt.css?v=7.0.1">
-    <link rel="stylesheet" type="text/css" href="lib/controls_styles.css?v=7.0.1">
-    <link rel="stylesheet" type="text/css" href="lib/styles.css">
-</head>
+<html lang="fr">
 
-<body>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+        <title>Gantt</title>
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css?v=7.0.12">
+        <link rel="stylesheet" type="text/css" href="lib/dhtmlxgantt.css?v=7.0.12">
+        <link rel="stylesheet" type="text/css" href="lib/controls_styles.css?v=7.0.12">
+        <link rel="stylesheet" type="text/css" href="lib/dhtmlxgantt_material.css?v=7.0.12">
+        <link rel="stylesheet" type="text/css" href="lib/styles.css">
+    </head>
+
+    <body>
 
     <div class="gantt_control">
         <button onclick="openCreateModal()">Nouveau</button>
         <button onclick="save()">Sauvegarder</button>
         <button onclick="exportJson()">Exporter en JSON</button>
-        <button id="zoomAutoButton" onclick="toggleMode(this)">Zoom Auto</button>
+        <button id="toggleFullScreenBtn" onclick="toggleFullScreen();">Plein écran</button>
         <button onClick="unselectTasks()">Effacer sélection</button>
         <a id="dl_hidden_link" style="display:none"></a>
+        <label for="scale">Échelle:</label>
+        <select name="scale" id="scale" onchange="updateScale()">
+            <option value="hour" selected>Heure</option>
+            <option value="day">Jour</option>
+            <option value="week">Semaine</option>
+            <option value="month">Mois</option>
+        </select>
     </div>
 
     <div id="createModal" class="modal">
@@ -57,7 +68,9 @@
 
     <div id="gantt_here" style='width:100%; height: calc(100vh - 52px);'></div>
 
-    <script src="lib/dhtmlxgantt.js?v=7.0.1"></script>
-    <script src="https://export.dhtmlx.com/gantt/api.js?v=7.0.1"></script>
+    <script src="lib/dhtmlxgantt.js?v=7.0.12"></script>
+    <script src="https://export.dhtmlx.com/gantt/api.js?v=7.0.12"></script>
     <script src="lib/gantt_cnieg.js"></script>
-</body>
+    </body>
+
+</html>

@@ -1,3 +1,9 @@
 
+spring:
+  resources:
+    static-locations:
+      - classpath:/fichier/
+      - classpath:/static/
+
 gantt:
   folder_data: ./fichier
