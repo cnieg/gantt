@@ -176,6 +176,7 @@ function configureGantt() {
 
     gantt.locale.labels["section_parent"] = "Tâche parente";
     let labels = gantt.locale.labels;
+    gantt.locale.labels.column_owner = labels.section_owner = "Charge";
     gantt.locale.labels.column_team = labels.section_team = "Équipe";
     gantt.locale.labels.column_owner = labels.section_owner = "Acteur";
     gantt.locale.labels.column_status = labels.section_status = "Statut";
@@ -209,6 +210,11 @@ function configureGantt() {
         template: function (item) {
             return getLabelById(gantt.serverList('team'), item['team_id'])
         }
+    }, {
+        name: "load",
+        align: "center",
+        width: 60,
+        label: "Charge"
     }, {
         name: "owner",
         align: "center",
