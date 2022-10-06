@@ -176,7 +176,7 @@ function configureGantt() {
 
     gantt.locale.labels["section_parent"] = "Tâche parente";
     let labels = gantt.locale.labels;
-    gantt.locale.labels.column_owner = labels.section_owner = "Charge";
+    gantt.locale.labels.column_load = labels.section_load = "Charge";
     gantt.locale.labels.column_team = labels.section_team = "Équipe";
     gantt.locale.labels.column_owner = labels.section_owner = "Acteur";
     gantt.locale.labels.column_status = labels.section_status = "Statut";
@@ -248,6 +248,12 @@ function configureGantt() {
         map_to: "team_id",
         type: "select",
         options: gantt.serverList("team")
+    }, {
+        name: "load",
+        height: 30,
+        map_to: "load",
+        type: "textarea",
+        unassigned_value: 1
     }, {
         name: "owner",
         height: 30,
